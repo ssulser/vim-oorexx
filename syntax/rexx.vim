@@ -253,6 +253,23 @@ syn region rexxOptionsDirective3 start="\(^\|;\)\s*::\s*options\s"ms=e+1 end="\(
 syn region rexxVariable start="\zs\<\(\.\)\@!\K\k\+\>\ze\s*\(=\|,\|)\|%\|\]\|\\\||\|&\|+=\|-=\|<\|>\)" end="\(\_$\|.\)"me=e-1
 syn match rexxVariable "\(=\|,\|)\|%\|\]\|\\\||\|&\|+=\|-=\|<\|>\)\s*\zs\K\k*\ze"
 
+" rgf, 2007-07-22: unfortunately, the entire region is colored (not only the
+" patterns), hence useless (vim 7.0)! (syntax-docs hint that that should work)
+" attempt: just colorize the parenthesis in matching colors, keep content
+" transparent to keep the formatting already done to it!
+" TODO: test on 7.3
+" syn region par1 matchgroup=par1 start="(" matchgroup=par1 end=")" transparent contains=par2
+" syn region par2 matchgroup=par2 start="(" matchgroup=par2 end=")" transparent contains=par3 contained
+" syn region par3 matchgroup=par3 start="(" matchgroup=par3 end=")" transparent contains=par4 contained
+" syn region par4 matchgroup=par4 start="(" matchgroup=par4 end=")" transparent contains=par5 contained
+" syn region par5 matchgroup=par5 start="(" matchgroup=par5 end=")" transparent contains=par1 contained
+" this will colorize the entire region, removing any colorizing already done!
+" syn region par1 matchgroup=par1 start="(" end=")" contains=par2
+" syn region par2 matchgroup=par2 start="(" end=")" contains=par3 contained
+" syn region par3 matchgroup=par3 start="(" end=")" contains=par4 contained
+" syn region par4 matchgroup=par4 start="(" end=")" contains=par5 contained
+" syn region par5 matchgroup=par5 start="(" end=")" contains=par1 contained
+
 hi par1 ctermfg=red guifg=red "guibg=grey
 hi par2 ctermfg=blue guifg=blue "guibg=grey
 hi par3 ctermfg=darkgreen guifg=darkgreen "guibg=grey

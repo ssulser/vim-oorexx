@@ -47,7 +47,7 @@ Run `:PlugInstall` and restart Vim.
   `smartindent` and `cindent`, sets `omnifunc=syntaxcomplete#Complete`, sets
   `completeopt=menuone,noinsert,noselect`, and maps `<F9>` to save and run the
   current file with `rexx`.
-- `.ctags.d/oorexx.ctags` defines the ooRexx parser for Universal Ctags.
+- `ctags/oorexx.ctags` defines the ooRexx parser for Universal Ctags.
 - `vimrc-rexx-settings.vim` contains optional Taglist settings and the `<F2>`
   toggle mapping.
 
@@ -132,11 +132,21 @@ outline. The core vim-oorexx features do not depend on Taglist. This setup uses
 Universal Ctags because the included parser configuration defines an ooRexx
 language and its tag kinds.
 
-Install Universal Ctags and Taglist. On macOS with Homebrew:
+Install Universal Ctags and Taglist. For example, on macOS with Homebrew:
 
 ```sh
 brew install universal-ctags
 ```
+
+On Debian or Ubuntu, install the `universal-ctags` package:
+
+```sh
+sudo apt install universal-ctags
+```
+
+On other Linux distributions, install Universal Ctags using the distribution's
+package manager. Check `ctags --version` to confirm that the executable is
+Universal Ctags.
 
 Add Taglist to the vim-plug block:
 
@@ -144,17 +154,19 @@ Add Taglist to the vim-plug block:
 Plug 'yegappan/taglist'
 ```
 
-Universal Ctags reads `*.ctags` files from `~/.ctags.d` automatically. Copy the
-parser file shipped with this plugin there:
+Universal Ctags reads `*.ctags` files from `~/.ctags.d` automatically. The
+plugin stores the file in the visible `ctags/` directory; copy it to Ctags'
+configuration directory:
 
 ```sh
 mkdir -p ~/.ctags.d
-cp ~/.vim/plugged/vim-oorexx/.ctags.d/oorexx.ctags ~/.ctags.d/oorexx.ctags
+cp ~/.vim/plugged/vim-oorexx/ctags/oorexx.ctags ~/.ctags.d/oorexx.ctags
 ```
 
 If vim-plug installs plugins in a different directory, adjust the source path.
-Confirm that `ctags --version` identifies Universal Ctags; macOS also ships an
-Apple `ctags`, which does not support this parser configuration.
+macOS also ships an Apple `ctags`, which does not support this parser
+configuration; make sure Homebrew's Universal Ctags is the executable found
+first in `PATH`.
 
 Finally, source the optional settings file from `~/.vimrc`, after the plugin
 manager block:
@@ -167,6 +179,13 @@ This sets Taglist's `ctags` executable, configures the ooRexx tag groups, and
 maps `<F2>` to `:TlistToggle`. The source file is optional and can be omitted
 if you do not use Taglist. If `exepath('ctags')` selects the wrong executable,
 set `Tlist_Ctags_Cmd` to the full path of Universal Ctags in your vimrc.
+
+The supplied settings use Vim's `exepath('ctags')`, which works across macOS
+and Linux when Universal Ctags is available on `PATH`. If you keep a
+Homebrew-specific setting such as
+`system('brew --prefix ctags')->trim() . '/bin/ctags'` in your own vimrc, that
+line is macOS-specific. On Linux, use `exepath('ctags')` or the full path
+reported by `command -v ctags` instead.
 
 ## Completion data
 
