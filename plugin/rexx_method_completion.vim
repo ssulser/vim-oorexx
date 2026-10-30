@@ -1,7 +1,7 @@
 " ooRexx message-method completion for Vim.
 " Part of the vim-oorexx plugin. Runtime files are loaded by Vim automatically.
-" It uses 'completefunc' (CTRL-X CTRL-U) and leaves 'omnifunc' untouched,
-" so syntaxcomplete#Complete for :: directives can continue to be used.
+" It uses Vim's built-in 'completefunc' (CTRL-X CTRL-U) for classes, methods,
+" routines, and directives; no external completion source is needed.
 "
 " Completion tables were extracted from the supplied ooRexx and extension
 " manuals; see the repository README for source versions and coverage.
@@ -11,6 +11,13 @@ if exists('g:loaded_rexx_method_completion')
   finish
 endif
 let g:loaded_rexx_method_completion = 1
+
+" Make the plugin usable with a minimal vimrc: activate Vim's own filetype
+" and syntax support.  No external completion plugin is needed.
+filetype on
+if has('syntax_items') && !exists('g:syntax_on')
+  syntax enable
+endif
 
 " These lists were extracted from the supplied ooRexx, extension, and ooTest manuals.
 " Class names in completion menus denote the documented class providing the method.
@@ -442,12 +449,22 @@ function! s:BuildRoutineIndex() abort
 endfunction
 
 let s:class_names = split('Alarm AlarmNotification ArgUtil Array Bag Buffer CaselessColumnComparator CaselessComparator CaselessDescendingComparator CircularQueue Class Collection ColumnComparator Comparable Comparator DateTime DescendingComparator Directory EventSemaphore File IdentityTable InputOutputStream InputStream InvertingComparator Json List MapCollection Message MessageNotification Method Monitor MutableBuffer MutexSemaphore Object Orderable OrderedCollection OutputStream Package Pointer Properties Queue RegularExpression Relation RexxContext RexxInfo RexxQueue Routine Set SetCollection Singleton StackFrame Stem Stream StreamSupplier String StringTable Supplier Table Ticker TimeSpan TraceObject Validate VariableReference WeakReference AdvancedControls AnimatedButton BaseDialog ButtonControl CategoryDialog CheckBox CheckList ComboBox DialogControl DialogExtensions DlgArea DlgAreaU DynamicDialog EditControl InputBox IntegerBox ListBox ListChoice ListControl MenuObject MessageExtensions MultiInputBox MultiListChoice OLEObject OLEVariant PasswordBox PlainBaseDialog PlainUserDialog ProgressBar ProgressIndicator PropertySheet RadioButton RcDialog ResDialog ScrollBar SingleSelection SliderControl StateIndicator StaticControl TabControl TimedMessage TreeControl UserDialog VirtualKeyCodes WindowBase WindowExtensions WindowObject WindowsClassesBase WindowsClipboard WindowsEventLog WindowsManager WindowsProgramManager WindowsRegistry BSF bsf.dialog bsf_proxy UNO UNO_ENUM UNO_CONSTANTS UNO_PROPERTIES Chtype CommandContext CommandHandler csvStream HostInfo InetAddress JsonBoolean JsonError JsonString JsonXmlEmitter JsonXmlParser LogicalWrapper Mevent MimeMultiPart MimePart NativeCommandHandler NumericComparator ooSQLCollation ooSQLCollationNeeded ooSQLExtensions ooSQLFunction ooSQLite ooSQLiteBackup ooSQLiteConnection ooSQLiteMutex ooSQLiteStmt ooSQLLibrary ooSQLPackage ooSQLResult ooSQLValue Pad SMTP SMTPMsg Socket StreamSocket Window Yaml YamlBoolean YamlEmitter YamlError YamlTagged YamlXmlEmitter YamlXmlParser Assert TestCase ooTestCase ooTestTypes')
+let s:directive_names = split('annotate annotation attribute class constant method options requires resource routine')
 let s:method_index = s:BuildIndex(s:method_classes)
 let s:routine_index = s:BuildRoutineIndex()
 
 function! RexxMethodComplete(findstart, base) abort
   if a:findstart
     let l:prefix = strpart(getline('.'), 0, col('.') - 1)
+
+    " Complete directive names after :: using this plugin's own source.
+    let l:directive = match(l:prefix, '\%(^\|;\)\s*::\s*[A-Za-z0-9_]*$')
+    if l:directive >= 0 && !s:InStringOrComment()
+      let b:rexx_completion_kind = 'directive'
+      setlocal completeopt+=noselect
+      return matchend(l:prefix, '\%(^\|;\)\s*::\s*')
+    endif
+
     " Complete only the identifier after a single or double message operator.
     let l:operator_start = match(l:prefix, '\~\~\?\s*[A-Za-z0-9._?!]*$')
     if l:operator_start >= 0
@@ -479,6 +496,21 @@ function! RexxMethodComplete(findstart, base) abort
   let l:matches = []
   let l:needle = tolower(a:base)
   let l:completion_kind = get(b:, 'rexx_completion_kind', 'method')
+  if l:completion_kind ==# 'directive'
+    for l:name in s:directive_names
+      if stridx(tolower(l:name), l:needle) == 0
+        call add(l:matches, {'word': l:name, 'menu': 'directive', 'kind': 'd'})
+      endif
+    endfor
+
+    " ::END is special in ooRexx: exact uppercase and column one only.
+    if getline('.') =~# '^::' && a:base ==# toupper(a:base)
+          \ && stridx('END', toupper(a:base)) == 0
+      call add(l:matches, {'word': 'END', 'menu': 'directive', 'kind': 'd'})
+    endif
+    return l:matches
+  endif
+
   let l:method_completion = l:completion_kind ==# 'method'
   let l:index = l:method_completion ? s:method_index : s:routine_index
   if l:completion_kind ==# 'class'
@@ -562,13 +594,28 @@ function! RexxClassCompletionDot() abort
   return '.'
 endfunction
 
+function! RexxDirectiveCompletionColon() abort
+  if s:InStringOrComment()
+    return ':'
+  endif
+  let l:prefix = strpart(getline('.'), 0, col('.') - 1)
+  " Starting the second colon of a directive opens the directive list.
+  if l:prefix =~# '\%(^\|;\)\s*:$'
+    return ":\<C-X>\<C-U>"
+  endif
+  return ':'
+endfunction
+
 function! s:SetupBuffer() abort
   if &filetype !=# 'rexx'
     return
   endif
+  setlocal nosmartindent nocindent
+  setlocal completeopt=menuone,noinsert,noselect
   setlocal completefunc=RexxMethodComplete
   inoremap <buffer> <expr> ~ RexxMethodCompletionTilde()
   inoremap <buffer> <expr> . RexxClassCompletionDot()
+  inoremap <buffer> <expr> : RexxDirectiveCompletionColon()
 endfunction
 
 augroup rexx_method_completion

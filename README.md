@@ -5,21 +5,20 @@ completion for documented classes, message methods, and routines.
 
 ## Requirements
 
-- Vim 8 or later with syntax support (`+syntax`).
-- No other Vim plugin is required for filetype detection, syntax highlighting,
-  or the plugin's class, method, and routine completion.
-- `asyncomplete.vim` and `asyncomplete-omni.vim` are optional. They add
-  automatic completion through Vim's `omnifunc`, including syntax completion
-  for directives. See [Optional asyncomplete setup](#optional-asyncomplete-setup).
+- Vim 8 or later, compiled with `+eval` and `+syntax`.
+- No completion plugin, plugin manager, or special `.vimrc` setup is required.
+  The plugin enables Vim's built-in filetype and syntax support itself.
 
-Make sure Vim filetype and syntax support are enabled in `~/.vimrc`:
+The ooRexx plugin itself must be installed and on Vim's `runtimepath`. For a
+plugin-manager-free installation, use Vim's native packages:
 
-```vim
-filetype plugin on
-syntax on
+```sh
+mkdir -p ~/.vim/pack/oorexx/start
+git clone https://github.com/ssulser/vim-oorexx \
+  ~/.vim/pack/oorexx/start/vim-oorexx
 ```
 
-## Install with vim-plug
+With vim-plug, add the repository to your existing plugin block instead:
 
 Publish this directory as a Git repository, then add it to the `plug#begin()`
 block in `~/.vimrc`:
@@ -30,7 +29,7 @@ Plug 'ssulser/vim-oorexx'
 call plug#end()
 ```
 
-Run `:PlugInstall` and restart Vim.
+Run `:PlugInstall` and restart Vim. vim-plug is optional.
 
 ## Included files
 
@@ -43,10 +42,8 @@ Run `:PlugInstall` and restart Vim.
   a separate hard-coded syntax list.
 - `plugin/rexx_method_completion.vim` completes documented classes, message
   methods, and routines.
-- `ftplugin/rexx.vim` applies Rexx-specific buffer settings: it disables
-  `smartindent` and `cindent`, sets `omnifunc=syntaxcomplete#Complete`, sets
-  `completeopt=menuone,noinsert,noselect`, and maps `<F9>` to save and run the
-  current file with `rexx`.
+- `ftplugin/rexx.vim` applies optional Rexx-specific buffer settings and maps
+  `<F9>` to save and run the current file with `rexx`.
 - `ctags/oorexx.ctags` defines the ooRexx parser for Universal Ctags.
 - `vimrc-rexx-settings.vim` contains optional Taglist settings and the `<F2>`
   toggle mapping.
@@ -57,7 +54,8 @@ provide each method.
 
 ## Completion
 
-The plugin automatically opens its completion menu in Rexx buffers:
+The plugin uses one built-in `completefunc` for classes, methods, routines, and
+directive names. It automatically opens its completion menu in Rexx buffers:
 
 - Type `.` in a class-reference position, then continue typing to filter the
   class list. For example, typing `.A` narrows the list to names such as
@@ -65,65 +63,18 @@ The plugin automatically opens its completion menu in Rexx buffers:
 - Type `~` or `~~` after a receiver to open message-method completion. Continue
   typing to filter the methods. The first candidate is not selected
   automatically.
+- Type `::` at the start of a directive to open directive completion. This is
+  handled by the plugin and does not use `omnifunc` or `syntaxcomplete`.
 
 The completion functions can also be called manually in Insert mode:
 
-- After a class-reference dot or a message operator, press **Ctrl-X, then
-  Ctrl-U** (`completefunc`). For example, type `.A`, press **Ctrl-X Ctrl-U**,
-  and select `.Array` with **Ctrl-N/Ctrl-P**. Press **Ctrl-Y** to accept the
-  selected candidate.
+- After a class-reference dot, a message operator, or `::`, press **Ctrl-X,
+  then Ctrl-U** (`completefunc`) to reopen the plugin's completion list.
 - For documented routines, type a prefix and press **Ctrl-X Ctrl-U**.
-- For Vim syntax completion, such as directive names after `::`, press
-  **Ctrl-X, then Ctrl-O** (`omnifunc`).
 
-`completefunc` and `omnifunc` serve different completion sources. This plugin
-uses `completefunc` for its class, method, and routine lists, and leaves
-`omnifunc` available for syntax completion.
-
-## Optional asyncomplete setup
-
-The plugin's `.` and `~` mappings work without asyncomplete. Install
-asyncomplete if you also want its automatic popup behavior for Vim's
-`omnifunc`, for example to show syntax completion while typing directive names.
-The asyncomplete Omni source calls `omnifunc`; it does not replace this plugin's
-`completefunc` completion.
-
-For asyncomplete, use Vim 8 or later with the `+timers` feature.
-
-With vim-plug, add both optional plugins:
-
-```vim
-Plug 'prabirshrestha/asyncomplete.vim'
-Plug 'yami-beta/asyncomplete-omni.vim'
-```
-
-The Rexx ftplugin already sets `omnifunc=syntaxcomplete#Complete`. Register the
-Omni source for the `rexx` filetype in `~/.vimrc`:
-
-```vim
-let g:asyncomplete_min_chars = 2
-
-augroup asyncomplete_rexx
-  autocmd!
-  autocmd User asyncomplete_setup call asyncomplete#register_source(
-        \ asyncomplete#sources#omni#get_source_options({
-        \   'name': 'omni-rexx',
-        \   'allowlist': ['rexx'],
-        \   'completor': function('asyncomplete#sources#omni#completor'),
-        \   'refresh_pattern': '\k\+$',
-        \ }))
-augroup END
-```
-
-If you already register a generic Omni source for all filetypes, you do not
-need to register a second Rexx source. Make sure `rexx` is not in that source's
-`blocklist`. Keep the Rexx `omnifunc` setting; the plugin's ftplugin sets it
-automatically.
-
-If you do not use asyncomplete, no asyncomplete-related `.vimrc` changes are
-needed. Remove the old Rexx-specific `BufRead,BufNewFile` and `FileType rexx`
-autocommands if they duplicate the plugin's filetype detection or buffer
-settings.
+The plugin also detects `.rexx`, `.rex`, and `.cls` files itself. A custom
+filetype-detection augroup in `.vimrc` is therefore optional. If you keep one,
+it can remain the only ooRexx-specific `.vimrc` code.
 
 ## Optional Taglist integration
 
@@ -179,9 +130,6 @@ This sets Taglist's `ctags` executable, configures the ooRexx tag groups, and
 maps `<F2>` to `:TlistToggle`. The source file is optional and can be omitted
 if you do not use Taglist. If `exepath('ctags')` selects the wrong executable,
 set `Tlist_Ctags_Cmd` to the full path of Universal Ctags in your vimrc.
-
-The supplied settings use Vim's `exepath('ctags')`, which works across macOS
-and Linux when Universal Ctags is available on `PATH`.
 
 ## Completion data
 
