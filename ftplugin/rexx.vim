@@ -6,7 +6,7 @@ let b:did_rexx_plugin_settings = 1
 
 setlocal nosmartindent nocindent
 setlocal omnifunc=syntaxcomplete#Complete
-setlocal completeopt=menuone,noinsert
+setlocal completeopt=menuone,noinsert,noselect
 
 nnoremap <buffer> <silent> <F9> :write<CR>:!clear && rexx %<CR>
 

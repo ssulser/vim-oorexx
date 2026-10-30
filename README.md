@@ -26,25 +26,30 @@ block in `~/.vimrc`:
 
 ```vim
 call plug#begin('~/.vim/plugged')
-Plug 'YOUR-ACCOUNT/vim-oorexx'
+Plug 'ssulser/vim-oorexx'
 call plug#end()
 ```
 
-Replace `YOUR-ACCOUNT` with the GitHub account or organization that hosts the
-repository. Run `:PlugInstall` and restart Vim.
+Run `:PlugInstall` and restart Vim.
 
 ## Included files
 
 - `ftdetect/rexx.vim` detects `.rexx`, `.rex`, and `.cls` files.
 - `syntax/rexx.vim` provides Rexx/ooRexx syntax highlighting and includes
   documented classes from the extension manuals, including ooSQLite, RxSock,
-  ooRexx extensions, ncurses, and Windows Extensions.
+  ooRexx extensions, ncurses, and Windows Extensions. It also recognizes the
+  ooRexxUnit and ooTest framework classes. Function calls are highlighted by
+  their call syntax, so extension routines such as `SockSocket()` do not need
+  a separate hard-coded syntax list.
 - `plugin/rexx_method_completion.vim` completes documented classes, message
   methods, and routines.
 - `ftplugin/rexx.vim` applies Rexx-specific buffer settings: it disables
   `smartindent` and `cindent`, sets `omnifunc=syntaxcomplete#Complete`, sets
   `completeopt=menuone,noinsert,noselect`, and maps `<F9>` to save and run the
   current file with `rexx`.
+- `.ctags.d/oorexx.ctags` defines the ooRexx parser for Universal Ctags.
+- `vimrc-rexx-settings.vim` contains optional Taglist settings and the `<F2>`
+  toggle mapping.
 
 The plugin does not infer the class of a receiver. Method completion is a
 combined list of documented methods; the popup shows which class or classes
@@ -118,13 +123,64 @@ automatically.
 If you do not use asyncomplete, no asyncomplete-related `.vimrc` changes are
 needed. Remove the old Rexx-specific `BufRead,BufNewFile` and `FileType rexx`
 autocommands if they duplicate the plugin's filetype detection or buffer
-settings. Keep unrelated settings, such as Taglist configuration, as needed.
+settings.
+
+## Optional Taglist integration
+
+Taglist displays classes, methods, routines, and directives in a navigable
+outline. The core vim-oorexx features do not depend on Taglist. This setup uses
+Universal Ctags because the included parser configuration defines an ooRexx
+language and its tag kinds.
+
+Install Universal Ctags and Taglist. On macOS with Homebrew:
+
+```sh
+brew install universal-ctags
+```
+
+Add Taglist to the vim-plug block:
+
+```vim
+Plug 'yegappan/taglist'
+```
+
+Universal Ctags reads `*.ctags` files from `~/.ctags.d` automatically. Copy the
+parser file shipped with this plugin there:
+
+```sh
+mkdir -p ~/.ctags.d
+cp ~/.vim/plugged/vim-oorexx/.ctags.d/oorexx.ctags ~/.ctags.d/oorexx.ctags
+```
+
+If vim-plug installs plugins in a different directory, adjust the source path.
+Confirm that `ctags --version` identifies Universal Ctags; macOS also ships an
+Apple `ctags`, which does not support this parser configuration.
+
+Finally, source the optional settings file from `~/.vimrc`, after the plugin
+manager block:
+
+```vim
+source ~/.vim/plugged/vim-oorexx/vimrc-rexx-settings.vim
+```
+
+This sets Taglist's `ctags` executable, configures the ooRexx tag groups, and
+maps `<F2>` to `:TlistToggle`. The source file is optional and can be omitted
+if you do not use Taglist. If `exepath('ctags')` selects the wrong executable,
+set `Tlist_Ctags_Cmd` to the full path of Universal Ctags in your vimrc.
 
 ## Completion data
 
-The completion tables contain 111 classes, 1,591 method entries, and 281
-documented routines. They were extracted from the supplied manuals: rexxref,
-rexxextensions, rxmath, rxsock, rxftp, unixextensions, orxncurses, oosqlite,
-and winextensions. The core manuals identify themselves as ooRexx 5.3.0; the
-Windows Extensions manual is 4.1.3 and ooSQLite is 1.0.0. The ooTest manual
-was not supplied. User-defined APIs are not inferred.
+The class completion list contains 171 documented class names. The method
+table covers 115 classes and 1,605 method entries; the routine table contains
+281 documented routines. The data was extracted from the supplied manuals:
+rexxref, rexxextensions, rxmath, rxsock, rxftp, unixextensions, orxncurses,
+oosqlite, winextensions, and ootest. The core manuals identify themselves as
+ooRexx 5.3.0; the Windows Extensions manual is 4.1.3 and ooSQLite is 1.0.0.
+User-defined APIs are not inferred.
+
+## Credits
+
+Maintained by Simon Sulser. The syntax file builds on Thomas Geulig's original
+Vim Rexx syntax file, with thanks to Dan Sharp and Rony G. Flatscher for their
+comments and additions. The ooRexx-specific updates and completion data were
+developed by Simon Sulser with assistance from ChatGPT.

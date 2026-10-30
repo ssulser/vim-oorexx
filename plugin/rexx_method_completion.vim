@@ -12,11 +12,12 @@ if exists('g:loaded_rexx_method_completion')
 endif
 let g:loaded_rexx_method_completion = 1
 
-" These lists were extracted from the supplied ooRexx and extension manuals.
+" These lists were extracted from the supplied ooRexx, extension, and ooTest manuals.
 " Class names in completion menus denote the documented class providing the method.
 let s:method_classes = {
       \ 'Alarm': split('attachment cancel init scheduledTime triggered'),
       \ 'AlarmNotification': split('cancel'),
+      \ 'Assert': split('assertEquals assertFalse assertNotEquals assertNotNull assertNotSame assertNull assertSame assertTrue'),
       \ 'Array': split('allIndexes allItems append at delete dimension dimensions empty fill first firstItem hasIndex hasItem index insert isEmpty items last lastItem makeArray makeString new next of previous put remove removeItem section size sort sortWith stableSort stableSortWith supplier toString'),
       \ 'Bag': split('allAt allIndex allIndexes allItems at difference empty hasIndex hasItem index intersection isEmpty items makeArray new of put putAll remove removeAll removeItem subset supplier union uniqueIndexes xor'),
       \ 'Buffer': split('new'),
@@ -108,6 +109,9 @@ let s:method_classes = {
       \ 'Table': split('allIndexes allItems at empty hasIndex hasItem index isEmpty items makeArray new put remove removeItem supplier'),
       \ 'Ticker': split('attachment cancel init interval'),
       \ 'TimeSpan': split('addDays addHours addMicroseconds addMinutes addSeconds addWeeks compareTo days duration fromCivilTime fromDays fromHours fromLongTime fromMicroseconds fromMinutes fromNormalTime fromSeconds fromStringFormat hashCode hours init makeString microseconds minutes seconds sign string totalDays totalHours totalMicroseconds totalMinutes totalSeconds'),
+      \ 'TestCase': split('new ooTestType'),
+      \ 'ooTestCase': split('new ooTestType'),
+      \ 'ooTestTypes': split('new ooTestType'),
       \ 'TraceObject': split('activate collector compareTo counter makeString makeStringImpl new notify option setMakeString unsetMakeString'),
       \ 'Validate': split('classType length logical nonNegativeNumber nonNegativeWholeNumber number numberRange position positiveNumber positiveWholeNumber requestClassType wholeNumber wholeNumberRange'),
       \ 'VariableReference': split('name request unknown value'),
@@ -437,6 +441,7 @@ function! s:BuildRoutineIndex() abort
   return l:index
 endfunction
 
+let s:class_names = split('Alarm AlarmNotification ArgUtil Array Bag Buffer CaselessColumnComparator CaselessComparator CaselessDescendingComparator CircularQueue Class Collection ColumnComparator Comparable Comparator DateTime DescendingComparator Directory EventSemaphore File IdentityTable InputOutputStream InputStream InvertingComparator Json List MapCollection Message MessageNotification Method Monitor MutableBuffer MutexSemaphore Object Orderable OrderedCollection OutputStream Package Pointer Properties Queue RegularExpression Relation RexxContext RexxInfo RexxQueue Routine Set SetCollection Singleton StackFrame Stem Stream StreamSupplier String StringTable Supplier Table Ticker TimeSpan TraceObject Validate VariableReference WeakReference AdvancedControls AnimatedButton BaseDialog ButtonControl CategoryDialog CheckBox CheckList ComboBox DialogControl DialogExtensions DlgArea DlgAreaU DynamicDialog EditControl InputBox IntegerBox ListBox ListChoice ListControl MenuObject MessageExtensions MultiInputBox MultiListChoice OLEObject OLEVariant PasswordBox PlainBaseDialog PlainUserDialog ProgressBar ProgressIndicator PropertySheet RadioButton RcDialog ResDialog ScrollBar SingleSelection SliderControl StateIndicator StaticControl TabControl TimedMessage TreeControl UserDialog VirtualKeyCodes WindowBase WindowExtensions WindowObject WindowsClassesBase WindowsClipboard WindowsEventLog WindowsManager WindowsProgramManager WindowsRegistry BSF bsf.dialog bsf_proxy UNO UNO_ENUM UNO_CONSTANTS UNO_PROPERTIES Chtype CommandContext CommandHandler csvStream HostInfo InetAddress JsonBoolean JsonError JsonString JsonXmlEmitter JsonXmlParser LogicalWrapper Mevent MimeMultiPart MimePart NativeCommandHandler NumericComparator ooSQLCollation ooSQLCollationNeeded ooSQLExtensions ooSQLFunction ooSQLite ooSQLiteBackup ooSQLiteConnection ooSQLiteMutex ooSQLiteStmt ooSQLLibrary ooSQLPackage ooSQLResult ooSQLValue Pad SMTP SMTPMsg Socket StreamSocket Window Yaml YamlBoolean YamlEmitter YamlError YamlTagged YamlXmlEmitter YamlXmlParser Assert TestCase ooTestCase ooTestTypes')
 let s:method_index = s:BuildIndex(s:method_classes)
 let s:routine_index = s:BuildRoutineIndex()
 
@@ -447,8 +452,17 @@ function! RexxMethodComplete(findstart, base) abort
     let l:operator_start = match(l:prefix, '\~\~\?\s*[A-Za-z0-9._?!]*$')
     if l:operator_start >= 0
       let b:rexx_completion_kind = 'method'
+      setlocal completeopt+=noselect
       let l:operator_end = matchend(strpart(l:prefix, l:operator_start), '\~\~\?\s*')
       return l:operator_start + l:operator_end
+    endif
+
+    " Complete documented class names after the leading class-reference dot.
+    let l:class_dot = match(l:prefix, '\%(^\|\s\|[(:,=;]\)\zs\.\ze[A-Za-z0-9._?!]*$')
+    if l:class_dot >= 0 && !s:InStringOrComment()
+      let b:rexx_completion_kind = 'class'
+      setlocal completeopt+=noselect
+      return l:class_dot + 1
     endif
 
     " CTRL-X CTRL-U also completes documented routines in ordinary code.
@@ -464,8 +478,17 @@ function! RexxMethodComplete(findstart, base) abort
 
   let l:matches = []
   let l:needle = tolower(a:base)
-  let l:method_completion = get(b:, 'rexx_completion_kind', 'method') ==# 'method'
+  let l:completion_kind = get(b:, 'rexx_completion_kind', 'method')
+  let l:method_completion = l:completion_kind ==# 'method'
   let l:index = l:method_completion ? s:method_index : s:routine_index
+  if l:completion_kind ==# 'class'
+    for l:name in s:class_names
+      if stridx(tolower(l:name), l:needle) == 0
+        call add(l:matches, {'word': l:name, 'menu': 'class', 'kind': 'c'})
+      endif
+    endfor
+    return l:matches
+  endif
   for l:key in sort(keys(l:index))
     if stridx(l:key, l:needle) == 0
       let l:item = l:index[l:key]
@@ -528,12 +551,24 @@ function! RexxMethodCompletionTilde() abort
   return "~\<C-X>\<C-U>"
 endfunction
 
+function! RexxClassCompletionDot() abort
+  if s:InStringOrComment()
+    return '.'
+  endif
+  let l:prefix = strpart(getline('.'), 0, col('.') - 1)
+  if l:prefix =~# '\%(^\|\s\|[(:,=;]\)$'
+    return ".\<C-X>\<C-U>"
+  endif
+  return '.'
+endfunction
+
 function! s:SetupBuffer() abort
   if &filetype !=# 'rexx'
     return
   endif
   setlocal completefunc=RexxMethodComplete
   inoremap <buffer> <expr> ~ RexxMethodCompletionTilde()
+  inoremap <buffer> <expr> . RexxClassCompletionDot()
 endfunction
 
 augroup rexx_method_completion

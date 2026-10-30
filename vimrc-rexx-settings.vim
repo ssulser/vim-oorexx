@@ -1,6 +1,7 @@
-" vim-oorexx handles filetype detection and Rexx buffer options automatically.
-" Keep this optional Taglist configuration in your vimrc only if you use Taglist.
-let Tlist_Ctags_Cmd = system('brew --prefix')->trim() . '/bin/ctags'
+" Optional Taglist settings for ooRexx.
+" Source this file from your vimrc only if Taglist and Universal Ctags are installed.
+let Tlist_Ctags_Cmd = exepath('ctags')
+nnoremap <silent> <F2> :TlistToggle<CR>
 let tlist_rexx_settings =
       \ 'ooRexx;'
       \ . 'c:classes;'
