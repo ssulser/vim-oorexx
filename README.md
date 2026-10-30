@@ -91,6 +91,25 @@ or classes provide each method. User-defined APIs are not inferred.
 All four completion types use Vim's `completefunc`. **Ctrl-X, then Ctrl-O**
 invokes `omnifunc`, a separate Vim feature that this plugin does not configure.
 
+### Using Asyncomplete alongside vim-oorexx
+
+If you use `asyncomplete-omni.vim`, add `rexx` to the `blocklist` in your
+existing Omni source registration. For example:
+
+```vim
+'blocklist': ['c', 'cpp', 'html', 'rexx'],
+```
+
+Keep your existing entries and add `rexx`. This prevents the generic Omni
+source from opening a competing completion menu in Rexx buffers. Installing
+Asyncomplete alone does not require this change; it applies when its Omni
+source is configured for Rexx. Other Asyncomplete sources enabled for Rexx
+may also need to exclude that filetype.
+
+vim-oorexx supplies its own completion through `completefunc`; it does not
+need an Asyncomplete source. Existing popup navigation mappings for Tab,
+Shift-Tab, and Enter also affect its menu.
+
 ## Running Rexx files
 
 To enable the buffer settings and `<F9>` mapping in `ftplugin/rexx.vim`, add
