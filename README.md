@@ -1,16 +1,24 @@
 # vim-oorexx
 
-Vim support for Rexx and ooRexx: filetype detection, syntax highlighting, and
-completion for documented classes, message methods, and routines.
+Rexx and ooRexx support for Vim, with automatic filetype detection, syntax
+highlighting, and completion for documented classes, message methods,
+routines, and directives.
 
 ## Requirements
 
 - Vim 8 or later, compiled with `+eval` and `+syntax`.
-- No completion plugin, plugin manager, or special `.vimrc` setup is required.
-  The plugin enables Vim's built-in filetype and syntax support itself.
+- Git to install the plugin using the commands below.
 
-The ooRexx plugin itself must be installed and on Vim's `runtimepath`. For a
-plugin-manager-free installation, use Vim's native packages:
+No additional completion plugin is required. The plugin enables Vim's
+built-in filetype detection and syntax highlighting automatically.
+
+## Installation
+
+Choose one of the following installation methods.
+
+### Native Vim packages
+
+Install the plugin in Vim's default package directory:
 
 ```sh
 mkdir -p ~/.vim/pack/oorexx/start
@@ -18,10 +26,16 @@ git clone https://github.com/ssulser/vim-oorexx \
   ~/.vim/pack/oorexx/start/vim-oorexx
 ```
 
-With vim-plug, add the repository to your existing plugin block instead:
+Restart Vim after installation. No `.vimrc` changes are needed for filetype
+detection, syntax highlighting, or completion.
 
-Publish this directory as a Git repository, then add it to the `plug#begin()`
-block in `~/.vimrc`:
+If you use a custom `packpath`, place the plugin under
+`pack/oorexx/start/vim-oorexx` inside one of its directories instead.
+
+### vim-plug
+
+If you use vim-plug, add `Plug 'ssulser/vim-oorexx'` to your existing plugin
+block in `.vimrc`. For example:
 
 ```vim
 call plug#begin('~/.vim/plugged')
@@ -29,7 +43,7 @@ Plug 'ssulser/vim-oorexx'
 call plug#end()
 ```
 
-Run `:PlugInstall` and restart Vim. vim-plug is optional.
+Run `:PlugInstall` and restart Vim.
 
 ## Included files
 
@@ -48,33 +62,47 @@ Run `:PlugInstall` and restart Vim. vim-plug is optional.
 - `vimrc-rexx-settings.vim` contains optional Taglist settings and the `<F2>`
   toggle mapping.
 
-The plugin does not infer the class of a receiver. Method completion is a
-combined list of documented methods; the popup shows which class or classes
-provide each method.
-
 ## Completion
 
-The plugin uses one built-in `completefunc` for classes, methods, routines, and
-directive names. It automatically opens its completion menu in Rexx buffers:
+Completion is available in Insert mode in Rexx buffers. Classes, message
+methods, and directives open a menu automatically; routine completion is
+invoked manually.
 
-- Type `.` in a class-reference position, then continue typing to filter the
-  class list. For example, typing `.A` narrows the list to names such as
-  `.Array`.
-- Type `~` or `~~` after a receiver to open message-method completion. Continue
-  typing to filter the methods. The first candidate is not selected
-  automatically.
-- Type `::` at the start of a directive to open directive completion. This is
-  handled by the plugin and does not use `omnifunc` or `syntaxcomplete`.
+| Complete | How to open the menu | Example |
+| --- | --- | --- |
+| Classes | Type `.` in a class-reference position, such as after a space or `=`. | `.Arr` offers `Array`. |
+| Message methods | Type `~` or `~~` after a receiver. | `items~app` offers `append`. |
+| Directives | Type `::` at the start of a line, optionally indented, or after a semicolon. | `::met` offers `method`. |
+| Routines | Type a prefix, then press **Ctrl-X, then Ctrl-U**. | `SysFi` offers `SysFileTree` and other matching routines. |
 
-The completion functions can also be called manually in Insert mode:
+Continue typing to filter the list. Matching ignores case. The automatic
+menus leave the first candidate unselected, so opening a menu does not insert
+a suggestion. Use **Ctrl-N** and **Ctrl-P** to select a candidate,
+**Ctrl-Y** to accept it, or **Ctrl-E** to dismiss the menu.
 
-- After a class-reference dot, a message operator, or `::`, press **Ctrl-X,
-  then Ctrl-U** (`completefunc`) to reopen the plugin's completion list.
-- For documented routines, type a prefix and press **Ctrl-X Ctrl-U**.
+Press **Ctrl-X, then Ctrl-U** after a class-reference dot, a message operator,
+or `::` to reopen the corresponding menu. You can also use it immediately
+after `call ` to list documented routines without entering a prefix.
 
-The plugin also detects `.rexx`, `.rex`, and `.cls` files itself. A custom
-filetype-detection augroup in `.vimrc` is therefore optional. If you keep one,
-it can remain the only ooRexx-specific `.vimrc` code.
+Method completion combines the documented methods of all supported classes.
+The plugin does not infer the receiver's class; the menu shows which class
+or classes provide each method. User-defined APIs are not inferred.
+
+All four completion types use Vim's `completefunc`. **Ctrl-X, then Ctrl-O**
+invokes `omnifunc`, a separate Vim feature that this plugin does not configure.
+
+## Running Rexx files
+
+To enable the buffer settings and `<F9>` mapping in `ftplugin/rexx.vim`, add
+this to your `.vimrc`:
+
+```vim
+filetype plugin on
+```
+
+In Normal mode, press `<F9>` to save the current file, clear the terminal,
+and run it with `rexx`. The mapping requires the ooRexx interpreter (`rexx`)
+and the `clear` command to be available in `PATH`.
 
 ## Optional Taglist integration
 
@@ -83,7 +111,9 @@ outline. The core vim-oorexx features do not depend on Taglist. This setup uses
 Universal Ctags because the included parser configuration defines an ooRexx
 language and its tag kinds.
 
-Install Universal Ctags and Taglist. For example, on macOS with Homebrew:
+### Install Universal Ctags
+
+On macOS with Homebrew:
 
 ```sh
 brew install universal-ctags
@@ -99,37 +129,69 @@ On other Linux distributions, install Universal Ctags using the distribution's
 package manager. Check `ctags --version` to confirm that the executable is
 Universal Ctags.
 
-Add Taglist to the vim-plug block:
+On macOS, make sure Homebrew's Universal Ctags is found first in `PATH`;
+Apple's `ctags` does not support the included parser configuration.
+
+### Install Taglist
+
+For native Vim packages:
+
+```sh
+git clone https://github.com/yegappan/taglist \
+  ~/.vim/pack/oorexx/start/taglist
+```
+
+With vim-plug, add Taglist to your existing plugin block, then run
+`:PlugInstall`:
 
 ```vim
 Plug 'yegappan/taglist'
 ```
 
-Universal Ctags reads `*.ctags` files from `~/.ctags.d` automatically. The
-plugin stores the file in the visible `ctags/` directory; copy it to Ctags'
-configuration directory:
+### Configure the ooRexx parser
+
+Copy the included parser configuration to `~/.ctags.d`, where Universal
+Ctags reads `*.ctags` files automatically.
+
+For the native Vim package installation:
+
+```sh
+mkdir -p ~/.ctags.d
+cp ~/.vim/pack/oorexx/start/vim-oorexx/ctags/oorexx.ctags ~/.ctags.d/oorexx.ctags
+```
+
+For the vim-plug installation:
 
 ```sh
 mkdir -p ~/.ctags.d
 cp ~/.vim/plugged/vim-oorexx/ctags/oorexx.ctags ~/.ctags.d/oorexx.ctags
 ```
 
-If vim-plug installs plugins in a different directory, adjust the source path.
-macOS also ships an Apple `ctags`, which does not support this parser
-configuration; make sure Homebrew's Universal Ctags is the executable found
-first in `PATH`.
+Adjust the source path if you installed vim-oorexx in a different directory.
+Copy the file again after a plugin update that changes the parser.
 
-Finally, source the optional settings file from `~/.vimrc`, after the plugin
-manager block:
+### Enable the Taglist settings
+
+Source the included settings file from your `.vimrc`. For native Vim
+packages:
+
+```vim
+source ~/.vim/pack/oorexx/start/vim-oorexx/vimrc-rexx-settings.vim
+```
+
+For vim-plug, add this after `call plug#end()`:
 
 ```vim
 source ~/.vim/plugged/vim-oorexx/vimrc-rexx-settings.vim
 ```
 
 This sets Taglist's `ctags` executable, configures the ooRexx tag groups, and
-maps `<F2>` to `:TlistToggle`. The source file is optional and can be omitted
-if you do not use Taglist. If `exepath('ctags')` selects the wrong executable,
-set `Tlist_Ctags_Cmd` to the full path of Universal Ctags in your vimrc.
+maps `<F2>` to `:TlistToggle`. Restart Vim, open a Rexx file, and press `<F2>`
+to open or close the outline.
+
+If `exepath('ctags')` selects the wrong executable, set `Tlist_Ctags_Cmd` to
+the full path of Universal Ctags **after** sourcing the settings file, which
+otherwise overwrites that setting.
 
 ## Completion data
 
