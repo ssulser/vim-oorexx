@@ -181,11 +181,7 @@ if you do not use Taglist. If `exepath('ctags')` selects the wrong executable,
 set `Tlist_Ctags_Cmd` to the full path of Universal Ctags in your vimrc.
 
 The supplied settings use Vim's `exepath('ctags')`, which works across macOS
-and Linux when Universal Ctags is available on `PATH`. If you keep a
-Homebrew-specific setting such as
-`system('brew --prefix ctags')->trim() . '/bin/ctags'` in your own vimrc, that
-line is macOS-specific. On Linux, use `exepath('ctags')` or the full path
-reported by `command -v ctags` instead.
+and Linux when Universal Ctags is available on `PATH`.
 
 ## Completion data
 
